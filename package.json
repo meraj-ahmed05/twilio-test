@@ -9,11 +9,11 @@
     "twilio": "^5.2.2"
   },
   "scripts": {
-    "start": "node server.js"
+    "start": "node twilio.js"
   },
   "name": "twilio",
   "version": "1.0.0",
-  "main": "node.js",
+  "main": "twilio.js",
   "keywords": [],
   "author": "",
   "license": "ISC",
