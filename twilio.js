@@ -3,12 +3,13 @@ const bodyParser = require("body-parser");
 const axios = require("axios");
 const pdfParse = require("pdf-parse"); // For PDF processing
 const sharp = require("sharp"); // For image processing
+require("dotenv").config();
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 
-const accountSid = "AC69a509b17f24df3ff5cafbe6c90c0398"; // Your Account SID from www.twilio.com/console
-const authToken = "53b7e8c3ae3d759717ec6e48107724d9"; // Your Auth Token from www.twilio.com/console
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = require("twilio")(accountSid, authToken);
 
 // Endpoint to handle incoming messages
