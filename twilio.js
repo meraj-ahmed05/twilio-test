@@ -36,13 +36,6 @@ app.post("/whatsapp-webhook", async (req, res) => {
       }: ${mediaUrl} (Type: ${mediaContentType})`;
 
       try {
-        // const mediaResponse = await axios.get(mediaUrl, {
-        //   responseType: "arraybuffer",
-        //   auth: {
-        //     username: process.env.TWILIO_ACCOUNT_SID,
-        //     password: process.env.TWILIO_AUTH_TOKEN,
-        //   },
-        // });
         const mediaResponse = await axios.get(mediaUrl, {
           headers: {
             Authorization: `Basic ${Buffer.from(
@@ -57,7 +50,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
         // Handle PDF files
         if (mediaContentType === "application/pdf") {
           const pdfData = await pdfParse(mediaData);
-          console.log(`PDF Content: ${pdfData.text}`);
+          // console.log(`PDF Content: ${pdfData.text}`);
           responseMessage += `\nPDF Content: ${pdfData.text.substring(
             0,
             100
@@ -68,7 +61,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
         else if (mediaContentType.startsWith("image/")) {
           const image = sharp(mediaData);
           const imageMetadata = await image.metadata();
-          console.log(`Image Metadata: ${JSON.stringify(imageMetadata)}`);
+          // console.log(`Image Metadata: ${JSON.stringify(imageMetadata)}`);
           responseMessage += `\nImage Dimensions: ${imageMetadata.width}x${imageMetadata.height}`;
         }
       } catch (error) {
