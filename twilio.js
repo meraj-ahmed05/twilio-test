@@ -21,7 +21,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const fromNumber = req.body.From;
   const numMedia = req.body.NumMedia;
 
-  let responseMessage = `You said: ${incomingMessage}`;
+  let responseMessage = `You said: test-api ${incomingMessage}`;
 
   // Check if there is any media
   if (numMedia > 0) {
@@ -38,7 +38,12 @@ app.post("/whatsapp-webhook", async (req, res) => {
       try {
         const mediaResponse = await axios.get(mediaUrl, {
           responseType: "arraybuffer",
+          auth: {
+            username: process.env.TWILIO_ACCOUNT_SID,
+            password: process.env.TWILIO_AUTH_TOKEN,
+          },
         });
+
         const mediaData = mediaResponse.data;
 
         // Handle PDF files
