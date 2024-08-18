@@ -15,7 +15,6 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = require("twilio")(accountSid, authToken);
 
 // Endpoint to handle incoming messages
-
 app.post("/whatsapp-webhook", async (req, res) => {
   const incomingMessage = req.body.Body;
   const fromNumber = req.body.From;
@@ -64,9 +63,6 @@ app.post("/whatsapp-webhook", async (req, res) => {
       }
     }
   }
-  app.post("/", (req, res) => {
-    res.send("connected");
-  });
 
   const twiml = new twilio.twiml.MessagingResponse();
   twiml.message(responseMessage);
