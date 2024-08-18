@@ -15,6 +15,7 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = require("twilio")(accountSid, authToken);
 
 // Endpoint to handle incoming messages
+
 app.post("/whatsapp-webhook", async (req, res) => {
   const incomingMessage = req.body.Body;
   const fromNumber = req.body.From;
@@ -70,7 +71,9 @@ app.post("/whatsapp-webhook", async (req, res) => {
   res.writeHead(200, { "Content-Type": "text/xml" });
   res.end(twiml.toString());
 });
-
+app.post("/", (req, res) => {
+  res.send("connected");
+});
 app.listen(3000, () => {
   console.log("Server is up and running on port 3000");
 });
