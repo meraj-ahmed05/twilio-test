@@ -36,12 +36,20 @@ app.post("/whatsapp-webhook", async (req, res) => {
       }: ${mediaUrl} (Type: ${mediaContentType})`;
 
       try {
+        // const mediaResponse = await axios.get(mediaUrl, {
+        //   responseType: "arraybuffer",
+        //   auth: {
+        //     username: process.env.TWILIO_ACCOUNT_SID,
+        //     password: process.env.TWILIO_AUTH_TOKEN,
+        //   },
+        // });
         const mediaResponse = await axios.get(mediaUrl, {
-          responseType: "arraybuffer",
-          auth: {
-            username: process.env.TWILIO_ACCOUNT_SID,
-            password: process.env.TWILIO_AUTH_TOKEN,
+          headers: {
+            Authorization: `Basic ${Buffer.from(
+              `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
+            ).toString("base64")}`,
           },
+          responseType: "arraybuffer",
         });
 
         const mediaData = mediaResponse.data;
