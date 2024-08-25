@@ -78,7 +78,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
 });
 app.post("/status-callback", (req, res) => {
   const messageStatus = req.body.MessageStatus;
-  const userPhoneNumber = `whatsapp:${req.body.From}`;
+  const userPhoneNumber = `whatsapp:${req.body.To}`;
   let statusMessage = "";
 
   switch (messageStatus) {
@@ -106,7 +106,7 @@ app.post("/status-callback", (req, res) => {
   // Send follow-up message to the user about the status
   client.messages
     .create({
-      from: twilioPhoneNumber,
+      from: "whatsapp:+14155238886",
       to: userPhoneNumber,
       body: statusMessage,
     })
