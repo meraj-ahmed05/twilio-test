@@ -76,11 +76,16 @@ app.post("/whatsapp-webhook", async (req, res) => {
   res.writeHead(200, { "Content-Type": "text/xml" });
   res.end(twiml.toString());
 });
+const processedMessages = new Set();
 app.post("/status-callback", (req, res) => {
   const messageStatus = req.body.MessageStatus;
   const userPhoneNumber = req.body.To;
   let statusMessage = "";
 
+  const messageSid = req.body.MessageSid;
+  if (processedMessages.has(messageSid)) {
+    return res.sendStatus(200); // Skip processing if already handled
+  }
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
