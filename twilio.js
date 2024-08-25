@@ -82,11 +82,6 @@ app.post("/status-callback", (req, res) => {
   const userPhoneNumber = req.body.To;
   let statusMessage = "";
 
-  const messageSid = req.body.MessageSid;
-  if (processedMessages.has(messageSid)) {
-    return res.sendStatus(200); // Skip processing if already handled
-  }
-  processedMessages.add(messageSid);
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
