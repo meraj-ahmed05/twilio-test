@@ -76,8 +76,8 @@ app.post("/whatsapp-webhook", async (req, res) => {
   res.writeHead(200, { "Content-Type": "text/xml" });
   res.end(twiml.toString());
 });
-const processedMessages = new Set();
-app.post("/status-callback", (req, res) => {
+
+app.post("/status-callback", async (req, res) => {
   const messageStatus = req.body.MessageStatus;
   const userPhoneNumber = req.body.To;
   let statusMessage = "";
@@ -103,7 +103,7 @@ app.post("/status-callback", (req, res) => {
       statusMessage = `Message status: ${messageStatus}`;
       break;
   }
-
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   // Send follow-up message to the user about the status
   client.messages
     .create({
