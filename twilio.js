@@ -14,6 +14,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+const msgServiceId = process.env.MESSAGE_SERVICE_ID;
+const contentSid = process.env.Content_template_SID;
 const client = require("twilio")(accountSid, authToken);
 
 app.post("/whatsapp-webhook", async (req, res) => {
@@ -136,7 +138,10 @@ app.post("/status-callback", async (req, res) => {
   if (messageStatus === "delivered") {
     client.messages
       .create({
+        contentSid: contentSid,
+        contentVariables: JSON.stringify({ 1: "John" }),
         from: twilioPhoneNumber,
+        messagingServiceSid: msgServiceId,
         to: userPhoneNumber,
         body: statusMessage,
       })
