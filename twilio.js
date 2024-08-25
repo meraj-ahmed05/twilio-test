@@ -12,6 +12,7 @@ app.use("/*", cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 const client = require("twilio")(accountSid, authToken);
 
 // Endpoint to handle incoming messages
@@ -22,7 +23,6 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const numMedia = req.body.NumMedia;
 
   let responseMessage = `You said: test-api-2 ${incomingMessage}`;
-
   // Check if there is any media
   if (numMedia > 0) {
     responseMessage += "\nYou sent the following media:";
@@ -31,11 +31,10 @@ app.post("/whatsapp-webhook", async (req, res) => {
       const mediaUrl = req.body[`MediaUrl${i}`];
       const mediaContentType = req.body[`MediaContentType${i}`];
 
-      responseMessage += `\nMedia ${
-        i + 1
-      }: ${mediaUrl} (Type: ${mediaContentType})`;
+      responseMessage += `\nMedia ${i + 1}: Type-> ${mediaContentType})`;
 
       try {
+        // Getting media from twilio
         const mediaResponse = await axios.get(mediaUrl, {
           headers: {
             Authorization: `Basic ${Buffer.from(
@@ -77,9 +76,45 @@ app.post("/whatsapp-webhook", async (req, res) => {
   res.writeHead(200, { "Content-Type": "text/xml" });
   res.end(twiml.toString());
 });
-app.post("/", (req, res) => {
-  res.send("connected");
+app.post("/status-callback", (req, res) => {
+  const messageStatus = req.body.MessageStatus;
+  const userPhoneNumber = req.body.To;
+  let statusMessage = "";
+
+  switch (messageStatus) {
+    case "queued":
+      statusMessage = "Your message is queued and will be sent shortly.";
+      break;
+    case "sent":
+      statusMessage = "Your message has been sent.";
+      break;
+    case "delivered":
+      statusMessage = "Your message was delivered successfully!";
+      break;
+    case "undelivered":
+      statusMessage = "Your message could not be delivered. Please try again.";
+      break;
+    case "failed":
+      statusMessage =
+        "There was an error sending your message. Please contact support.";
+      break;
+    default:
+      statusMessage = `Message status: ${messageStatus}`;
+      break;
+  }
+
+  // Send follow-up message to the user about the status
+  client.messages
+    .create({
+      from: twilioPhoneNumber,
+      to: userPhoneNumber,
+      body: statusMessage,
+    })
+    .then((response) => console.log("Follow-up message sent:", response.sid));
+
+  res.sendStatus(200);
 });
+
 app.listen(3000, () => {
   console.log("Server is up and running on port 3000");
 });
