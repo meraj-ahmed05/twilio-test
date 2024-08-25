@@ -78,7 +78,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
 });
 app.post("/status-callback", (req, res) => {
   const messageStatus = req.body.MessageStatus;
-  const userPhoneNumber = `whatsapp:${req.body.To}`;
+  const userPhoneNumber = `whatsapp:${req.body.From}`;
   let statusMessage = "";
 
   switch (messageStatus) {
