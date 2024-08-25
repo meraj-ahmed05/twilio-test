@@ -1,8 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
-const pdfParse = require("pdf-parse"); // For PDF processing
-const sharp = require("sharp"); // For image processing
+const pdfParse = require("pdf-parse");
+const sharp = require("sharp");
 const twilio = require("twilio");
 const cors = require("cors");
 require("dotenv").config();
@@ -10,20 +10,19 @@ require("dotenv").config();
 const app = express();
 app.use("/*", cors());
 app.use(bodyParser.urlencoded({ extended: false }));
+
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 const client = require("twilio")(accountSid, authToken);
-
-// Endpoint to handle incoming messages
 
 app.post("/whatsapp-webhook", async (req, res) => {
   const incomingMessage = req.body.Body;
   const fromNumber = req.body.From;
   const numMedia = req.body.NumMedia;
 
-  let responseMessage = `From: ${fromNumber}\nYou said:${incomingMessage}`;
-  // Check if there is any media
+  let responseMessage = `From: ${fromNumber}\nYou said: ${incomingMessage}`;
+
   if (numMedia > 0) {
     responseMessage += "\nYou sent the following media:";
 
@@ -34,7 +33,6 @@ app.post("/whatsapp-webhook", async (req, res) => {
       responseMessage += `\nMedia ${i + 1}: Type-> ${mediaContentType})`;
 
       try {
-        // Getting media from twilio
         const mediaResponse = await axios.get(mediaUrl, {
           headers: {
             Authorization: `Basic ${Buffer.from(
@@ -46,28 +44,33 @@ app.post("/whatsapp-webhook", async (req, res) => {
 
         const mediaData = mediaResponse.data;
 
-        // Handle PDF files
         if (mediaContentType === "application/pdf") {
           const pdfData = await pdfParse(mediaData);
-          // console.log(`PDF Content: ${pdfData.text}`);
           responseMessage += `\nPDF Content: ${pdfData.text.substring(
             0,
             100
-          )}...`; // Show first 100 chars
-        }
-
-        // Handle Images
-        else if (mediaContentType.startsWith("image/")) {
+          )}...`;
+        } else if (mediaContentType.startsWith("image/")) {
           const image = sharp(mediaData);
           const imageMetadata = await image.metadata();
-          // console.log(`Image Metadata: ${JSON.stringify(imageMetadata)}`);
           responseMessage += `\nImage Dimensions: ${imageMetadata.width}x${imageMetadata.height}`;
         }
       } catch (error) {
-        console.error(`Failed to download/process media: ${error}`);
         responseMessage += `\nFailed to process the media`;
       }
     }
+  }
+
+  if (req.body.From) {
+    const userResponse = req.body.Body;
+    const responseMessage = `You pressed: ${userResponse}`;
+
+    const twiml = new twilio.twiml.MessagingResponse();
+    twiml.message(responseMessage);
+
+    res.writeHead(200, { "Content-Type": "text/xml" });
+    res.end(twiml.toString());
+    return;
   }
 
   const twiml = new twilio.twiml.MessagingResponse();
@@ -79,7 +82,8 @@ app.post("/whatsapp-webhook", async (req, res) => {
 
 app.post("/status-callback", async (req, res) => {
   const messageStatus = req.body.MessageStatus;
-  const userPhoneNumber = req.body.To;
+  const userPhoneNumber = `whatsapp:${req.body.To}`;
+  const messageSid = req.body.MessageSid;
   let statusMessage = "";
 
   switch (messageStatus) {
@@ -90,7 +94,30 @@ app.post("/status-callback", async (req, res) => {
       statusMessage = "Your message has been sent.";
       break;
     case "delivered":
-      statusMessage = "Your message was delivered successfully!";
+      statusMessage = {
+        type: "template",
+        template: {
+          name: "interactive_buttons_template",
+          language: { code: "en_US" },
+          components: [
+            {
+              type: "body",
+              text: "Your message was delivered successfully!",
+            },
+            {
+              type: "buttons",
+              buttons: [
+                { type: "reply", reply: { id: "save", title: "Save" } },
+                { type: "reply", reply: { id: "ignore", title: "Ignore" } },
+                {
+                  type: "reply",
+                  reply: { id: "list_folder", title: "List Folder" },
+                },
+              ],
+            },
+          ],
+        },
+      };
       break;
     case "undelivered":
       statusMessage = "Your message could not be delivered. Please try again.";
@@ -103,15 +130,33 @@ app.post("/status-callback", async (req, res) => {
       statusMessage = `Message status: ${messageStatus}`;
       break;
   }
+
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  // Send follow-up message to the user about the status
-  client.messages
-    .create({
-      from: twilioPhoneNumber,
-      to: userPhoneNumber,
-      body: statusMessage,
-    })
-    .then((response) => console.log("Follow-up message sent:", response.sid));
+
+  if (messageStatus === "delivered") {
+    client.messages
+      .create({
+        from: twilioPhoneNumber,
+        to: userPhoneNumber,
+        body: statusMessage,
+      })
+      .then((response) => console.log("Follow-up message sent:", response.sid))
+      .catch((error) =>
+        console.error("Failed to send follow-up message:", error.message)
+      );
+  }
+  // else {
+  //   client.messages
+  //     .create({
+  //       from: twilioPhoneNumber,
+  //       to: userPhoneNumber,
+  //       body: statusMessage,
+  //     })
+  //     .then((response) => console.log("Follow-up message sent:", response.sid))
+  //     .catch((error) =>
+  //       console.error("Failed to send follow-up message:", error.message)
+  //     );
+  // }
 
   res.sendStatus(200);
 });
