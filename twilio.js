@@ -22,7 +22,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const fromNumber = req.body.From;
   const numMedia = req.body.NumMedia;
 
-  let responseMessage = `You said: test-api-2 ${incomingMessage}`;
+  let responseMessage = `From: ${fromNumber}\nYou said:${incomingMessage}`;
   // Check if there is any media
   if (numMedia > 0) {
     responseMessage += "\nYou sent the following media:";
