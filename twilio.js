@@ -96,31 +96,7 @@ app.post("/status-callback", async (req, res) => {
       statusMessage = "Your message has been sent.";
       break;
     case "delivered":
-      statusMessage = "you msg has been delivered ";
-      // {
-      //   type: "template",
-      //   template: {
-      //     name: "interactive_buttons_template",
-      //     language: { code: "en_US" },
-      //     components: [
-      //       {
-      //         type: "body",
-      //         text: "Your message was delivered successfully!",
-      //       },
-      //       {
-      //         type: "buttons",
-      //         buttons: [
-      //           { type: "reply", reply: { id: "save", title: "Save" } },
-      //           { type: "reply", reply: { id: "ignore", title: "Ignore" } },
-      //           {
-      //             type: "reply",
-      //             reply: { id: "list_folder", title: "List Folder" },
-      //           },
-      //         ],
-      //       },
-      //     ],
-      //   },
-      // };
+      statusMessage = "Your message was delivered successfully!";
       break;
     case "undelivered":
       statusMessage = "Your message could not be delivered. Please try again.";
@@ -134,26 +110,24 @@ app.post("/status-callback", async (req, res) => {
       break;
   }
 
-  // await new Promise((resolve) => setTimeout(resolve, 1000));
-
   if (messageStatus === "delivered") {
-    client.messages
-      .create({
+    try {
+      await client.messages.create({
         contentSid: contentSid,
-        contentVariables: JSON.stringify({ 1: "John" }),
+        contentVariables: JSON.stringify({ 1: "John" }), // Adjust the variables as needed
         from: twilioPhoneNumber,
         messagingServiceSid: msgServiceId,
         to: userPhoneNumber,
         body: statusMessage,
-      })
-      .then((response) => console.log("Follow-up message sent:", response.sid))
-      .catch((error) =>
-        console.error("Failed to send follow-up message:", error.message)
-      );
-    res.sendStatus(200);
+      });
+      console.log("Follow-up message sent.");
+    } catch (error) {
+      console.error("Failed to send follow-up message:", error.message);
+    }
   }
 
-  res.sendStatus(400);
+  // Send a single response
+  res.sendStatus(messageStatus === "delivered" ? 200 : 400);
 });
 
 app.listen(3000, () => {
