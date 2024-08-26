@@ -23,11 +23,10 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const fromNumber = req.body.From;
   const numMedia = req.body.NumMedia;
   let responseMessage = `From: ${fromNumber}\nYou said: ${incomingMessage}`;
-  // if (req.body.metadata && req.body.metadata === "follow-up") {
-  //   // Skip follow-up processing to avoid an infinite loop
-  //   return res.sendStatus(200);
-  // }
-  if (numMedia > 0) {
+
+  if (numMedia > 0 || incomingMessage.includes("special text")) {
+    const sessionId = fromNumber; // You could use message SID or phone number as the key
+    req.session[sessionId] = { mediaReceived: true, message: incomingMessage };
     responseMessage += "\nYou sent the following media:";
 
     for (let i = 0; i < numMedia; i++) {
@@ -90,6 +89,8 @@ app.post("/status-callback", async (req, res) => {
   const messageStatus = req.body.MessageStatus;
   const userPhoneNumber = req.body.To;
   const messageSid = req.body.MessageSid;
+  const sessionId = userPhoneNumber;
+  const sessionData = req.session[sessionId];
   let statusMessage = "";
 
   switch (messageStatus) {
@@ -114,7 +115,11 @@ app.post("/status-callback", async (req, res) => {
       break;
   }
 
-  if (!req.body.metadata && messageStatus === "delivered") {
+  if (
+    messageStatus === "delivered" &&
+    sessionData &&
+    sessionData.mediaReceived
+  ) {
     try {
       await client.messages.create({
         contentSid: contentSid,
@@ -125,6 +130,7 @@ app.post("/status-callback", async (req, res) => {
         body: statusMessage,
         metadata: "follow-up",
       });
+      delete req.session[sessionId];
       console.log("Follow-up message sent.");
     } catch (error) {
       console.error("Failed to send follow-up message:", error.message);
