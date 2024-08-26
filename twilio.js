@@ -88,7 +88,10 @@ app.post("/status-callback", async (req, res) => {
   const userPhoneNumber = req.body.To;
   const messageSid = req.body.MessageSid;
   let statusMessage = "";
-
+  if (req.body.metadata && req.body.metadata === "follow-up") {
+    // Skip follow-up processing to avoid an infinite loop
+    return res.sendStatus(200);
+  }
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
@@ -120,6 +123,7 @@ app.post("/status-callback", async (req, res) => {
         messagingServiceSid: msgServiceId,
         to: userPhoneNumber,
         body: statusMessage,
+        metadata: "follow-up",
       });
       console.log("Follow-up message sent.");
     } catch (error) {
