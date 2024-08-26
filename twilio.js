@@ -32,15 +32,15 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const fromNumber = req.body.From;
   const numMedia = req.body.NumMedia;
   let responseMessage = `From: ${fromNumber}\nYou said: ${incomingMessage}`;
-
+  const sessionId = fromNumber; // You could use message SID or phone number as the key
+  req.session[sessionId] = false;
   if (numMedia > 0 || incomingMessage.includes("special text")) {
-    const sessionId = fromNumber; // You could use message SID or phone number as the key
-    req.session[sessionId] = { mediaReceived: true, message: incomingMessage };
-    console.log(
-      `Session Data: ${JSON.stringify(
-        req.session[sessionId]
-      )}, mediaReceived: ${req.session[sessionId].mediaReceived}`
-    );
+    req.session[sessionId] = true;
+    // console.log(
+    //   `Session Data: ${JSON.stringify(
+    //     req.session[sessionId]
+    //   )}, mediaReceived: ${req.session[sessionId].mediaReceived}`
+    // );
     responseMessage += "\nYou sent the following media:";
 
     for (let i = 0; i < numMedia; i++) {
@@ -106,11 +106,9 @@ app.post("/status-callback", async (req, res) => {
   const sessionId = userPhoneNumber;
   const sessionData = req.session[sessionId];
   let statusMessage = "";
-  // if (messageStatus === "delivered") {
-  console.log(
-    `count: ${count}=>  ${messageStatus} and ${sessionData} and ${sessionData.mediaReceived}`
-  );
-  // }
+  if (messageStatus === "delivered") {
+    console.log(`count: ${count}=>  ${messageStatus} and ${sessionData}`);
+  }
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
@@ -133,11 +131,7 @@ app.post("/status-callback", async (req, res) => {
       break;
   }
 
-  if (
-    messageStatus === "delivered" &&
-    sessionData &&
-    sessionData.mediaReceived
-  ) {
+  if (messageStatus === "delivered" && sessionData) {
     try {
       await client.messages.create({
         contentSid: contentSid,
