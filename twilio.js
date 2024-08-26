@@ -5,20 +5,20 @@ const pdfParse = require("pdf-parse");
 const sharp = require("sharp");
 const twilio = require("twilio");
 const cors = require("cors");
-const session = require("express-session");
+// const session = require("express-session");
 require("dotenv").config();
 
 const app = express();
-app.use("/*", cors());
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(
-  session({
-    secret: process.env.SESSION_KEY,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: true },
-  })
-);
+// app.use(
+//   session({
+//     secret: process.env.SESSION_KEY,
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: { secure: true },
+//   })
+// );
 let count = 0;
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -26,6 +26,7 @@ const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 const msgServiceId = process.env.MESSAGE_SERVICE_ID;
 const contentSid = process.env.Content_template_SID;
 const client = require("twilio")(accountSid, authToken);
+const mySet = new Set();
 
 app.post("/whatsapp-webhook", async (req, res) => {
   const incomingMessage = req.body.Body;
@@ -33,14 +34,14 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const numMedia = req.body.NumMedia;
   let responseMessage = `From: ${fromNumber}\nYou said: ${incomingMessage}`;
   const sessionId = fromNumber; // You could use message SID or phone number as the key
-  req.session[sessionId] = false;
-  if (numMedia > 0 || incomingMessage.includes("special text")) {
-    req.session[sessionId] = true;
-    // console.log(
-    //   `Session Data: ${JSON.stringify(
-    //     req.session[sessionId]
-    //   )}, mediaReceived: ${req.session[sessionId].mediaReceived}`
-    // );
+  // req.session[sessionId] = false;
+  if (
+    numMedia > 0 ||
+    (incomingMessage && incomingMessage.includes("special text"))
+  ) {
+    mySet.add(sessionId);
+    // req.session[sessionId] = true;
+    // console.log(`Session Data: ${JSON.stringify(req.session[sessionId])}`);
     responseMessage += "\nYou sent the following media:";
 
     for (let i = 0; i < numMedia; i++) {
@@ -104,11 +105,11 @@ app.post("/status-callback", async (req, res) => {
   const userPhoneNumber = req.body.To;
   const messageSid = req.body.MessageSid;
   const sessionId = userPhoneNumber;
-  const sessionData = req.session[sessionId];
+  // const sessionData = req.session[sessionId];
   let statusMessage = "";
-  if (messageStatus === "delivered") {
-    console.log(`count: ${count}=>  ${messageStatus} and ${sessionData}`);
-  }
+  // if (messageStatus === "delivered") {
+  //   console.log(`count: ${count}=>  ${messageStatus} and ${sessionData}`);
+  // }
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
@@ -131,7 +132,7 @@ app.post("/status-callback", async (req, res) => {
       break;
   }
 
-  if (messageStatus === "delivered" && sessionData) {
+  if (messageStatus === "delivered" && mySet.has(sessionId)) {
     try {
       await client.messages.create({
         contentSid: contentSid,
@@ -142,7 +143,8 @@ app.post("/status-callback", async (req, res) => {
         body: statusMessage,
         metadata: "follow-up",
       });
-      delete req.session[sessionId];
+      mySet.delete(sessionId);
+      // delete req.session[sessionId];
       console.log("Follow-up message sent.");
     } catch (error) {
       console.error("Failed to send follow-up message:", error.message);
