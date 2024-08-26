@@ -23,7 +23,10 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const fromNumber = req.body.From;
   const numMedia = req.body.NumMedia;
   let responseMessage = `From: ${fromNumber}\nYou said: ${incomingMessage}`;
-
+  // if (req.body.metadata && req.body.metadata === "follow-up") {
+  //   // Skip follow-up processing to avoid an infinite loop
+  //   return res.sendStatus(200);
+  // }
   if (numMedia > 0) {
     responseMessage += "\nYou sent the following media:";
 
@@ -51,7 +54,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
             0,
             100
           )}...`;
-          req.body.metadata = "send-follow-up";
+          // req.body.metadata = "send-follow-up";
         } else if (mediaContentType.startsWith("image/")) {
           const image = sharp(mediaData);
           const imageMetadata = await image.metadata();
@@ -63,7 +66,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
     }
   }
 
-  if (req.body.metadata === "delivered") {
+  if (req.body.metadata === "follow-up") {
     const userResponse = req.body.Body;
     const responseMessage = `You pressed: ${userResponse}`;
 
@@ -111,26 +114,22 @@ app.post("/status-callback", async (req, res) => {
       break;
   }
 
-  // if (
-  //   req.body.metadata &&
-  //   req.body.metadata === "send-follow-up" &&
-  //   messageStatus === "delivered"
-  // ) {
-  try {
-    await client.messages.create({
-      contentSid: contentSid,
-      contentVariables: JSON.stringify({ 1: `${count}-${statusMessage}` }), // Adjust the variables as needed
-      from: twilioPhoneNumber,
-      messagingServiceSid: msgServiceId,
-      to: userPhoneNumber,
-      body: statusMessage,
-      metadata: "delivered",
-    });
-    console.log("Follow-up message sent.");
-  } catch (error) {
-    console.error("Failed to send follow-up message:", error.message);
+  if (!req.body.metadata && messageStatus === "delivered") {
+    try {
+      await client.messages.create({
+        contentSid: contentSid,
+        contentVariables: JSON.stringify({ 1: `${count}-${statusMessage}` }), // Adjust the variables as needed
+        from: twilioPhoneNumber,
+        messagingServiceSid: msgServiceId,
+        to: userPhoneNumber,
+        body: statusMessage,
+        metadata: "follow-up",
+      });
+      console.log("Follow-up message sent.");
+    } catch (error) {
+      console.error("Failed to send follow-up message:", error.message);
+    }
   }
-  // }
 
   // Send a single response
   res.sendStatus(messageStatus === "delivered" ? 200 : 400);
