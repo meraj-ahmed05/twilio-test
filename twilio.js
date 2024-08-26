@@ -101,7 +101,9 @@ app.post("/status-callback", async (req, res) => {
   const sessionId = userPhoneNumber;
   const sessionData = req.session[sessionId];
   let statusMessage = "";
-
+  if (messageStatus === "delivered") {
+    console.log(`${sessionData} and ${sessionData.mediaReceived}`);
+  }
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
