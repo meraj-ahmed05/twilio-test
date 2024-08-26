@@ -101,9 +101,11 @@ app.post("/status-callback", async (req, res) => {
   const sessionId = userPhoneNumber;
   const sessionData = req.session[sessionId];
   let statusMessage = "";
-  if (messageStatus === "delivered") {
-    console.log(`${sessionData} and ${sessionData.mediaReceived}`);
-  }
+  // if (messageStatus === "delivered") {
+  console.log(
+    `count: ${count}=>  ${messageStatus} and ${sessionData} and ${sessionData.mediaReceived}`
+  );
+  // }
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
@@ -147,9 +149,9 @@ app.post("/status-callback", async (req, res) => {
       console.error("Failed to send follow-up message:", error.message);
     }
   }
-
+  res.sendStatus(200);
   // Send a single response
-  res.sendStatus(messageStatus === "delivered" ? 200 : 400);
+  // res.sendStatus(messageStatus === "delivered" ? 200 : 400);
 });
 
 app.listen(3000, () => {
