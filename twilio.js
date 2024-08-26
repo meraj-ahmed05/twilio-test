@@ -52,6 +52,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
             0,
             100
           )}...`;
+          req.body.metadata = "send-follow-up";
         } else if (mediaContentType.startsWith("image/")) {
           const image = sharp(mediaData);
           const imageMetadata = await image.metadata();
@@ -63,7 +64,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
     }
   }
 
-  if (req.body.From) {
+  if (req.body.metadata === "delivered") {
     const userResponse = req.body.Body;
     const responseMessage = `You pressed: ${userResponse}`;
 
@@ -88,10 +89,7 @@ app.post("/status-callback", async (req, res) => {
   const userPhoneNumber = req.body.To;
   const messageSid = req.body.MessageSid;
   let statusMessage = "";
-  if (req.body.metadata && req.body.metadata === "follow-up") {
-    // Skip follow-up processing to avoid an infinite loop
-    return res.sendStatus(200);
-  }
+
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
@@ -114,7 +112,11 @@ app.post("/status-callback", async (req, res) => {
       break;
   }
 
-  if (messageStatus === "delivered") {
+  if (
+    req.body.metadata &&
+    req.body.metadata === "send-follow-up" &&
+    messageStatus === "delivered"
+  ) {
     try {
       await client.messages.create({
         contentSid: contentSid,
@@ -123,7 +125,7 @@ app.post("/status-callback", async (req, res) => {
         messagingServiceSid: msgServiceId,
         to: userPhoneNumber,
         body: statusMessage,
-        metadata: "follow-up",
+        metadata: "delivered",
       });
       console.log("Follow-up message sent.");
     } catch (error) {
