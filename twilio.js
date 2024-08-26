@@ -5,11 +5,20 @@ const pdfParse = require("pdf-parse");
 const sharp = require("sharp");
 const twilio = require("twilio");
 const cors = require("cors");
+const session = require("express-session");
 require("dotenv").config();
 
 const app = express();
 app.use("/*", cors());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(
+  session({
+    secret: process.env.SESSION_KEY,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: true },
+  })
+);
 let count = 0;
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
