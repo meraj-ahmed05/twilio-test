@@ -22,7 +22,6 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const incomingMessage = req.body.Body;
   const fromNumber = req.body.From;
   const numMedia = req.body.NumMedia;
-
   let responseMessage = `From: ${fromNumber}\nYou said: ${incomingMessage}`;
 
   if (numMedia > 0) {
@@ -112,26 +111,26 @@ app.post("/status-callback", async (req, res) => {
       break;
   }
 
-  if (
-    req.body.metadata &&
-    req.body.metadata === "send-follow-up" &&
-    messageStatus === "delivered"
-  ) {
-    try {
-      await client.messages.create({
-        contentSid: contentSid,
-        contentVariables: JSON.stringify({ 1: `${count}-${statusMessage}` }), // Adjust the variables as needed
-        from: twilioPhoneNumber,
-        messagingServiceSid: msgServiceId,
-        to: userPhoneNumber,
-        body: statusMessage,
-        metadata: "delivered",
-      });
-      console.log("Follow-up message sent.");
-    } catch (error) {
-      console.error("Failed to send follow-up message:", error.message);
-    }
+  // if (
+  //   req.body.metadata &&
+  //   req.body.metadata === "send-follow-up" &&
+  //   messageStatus === "delivered"
+  // ) {
+  try {
+    await client.messages.create({
+      contentSid: contentSid,
+      contentVariables: JSON.stringify({ 1: `${count}-${statusMessage}` }), // Adjust the variables as needed
+      from: twilioPhoneNumber,
+      messagingServiceSid: msgServiceId,
+      to: userPhoneNumber,
+      body: statusMessage,
+      metadata: "delivered",
+    });
+    console.log("Follow-up message sent.");
+  } catch (error) {
+    console.error("Failed to send follow-up message:", error.message);
   }
+  // }
 
   // Send a single response
   res.sendStatus(messageStatus === "delivered" ? 200 : 400);
