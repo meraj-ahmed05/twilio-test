@@ -36,6 +36,11 @@ app.post("/whatsapp-webhook", async (req, res) => {
   if (numMedia > 0 || incomingMessage.includes("special text")) {
     const sessionId = fromNumber; // You could use message SID or phone number as the key
     req.session[sessionId] = { mediaReceived: true, message: incomingMessage };
+    console.log(
+      `Session Data: ${JSON.stringify(
+        req.session[sessionId]
+      )}, mediaReceived: ${req.session[sessionId].mediaReceived}`
+    );
     responseMessage += "\nYou sent the following media:";
 
     for (let i = 0; i < numMedia; i++) {
