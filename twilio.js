@@ -10,7 +10,7 @@ require("dotenv").config();
 const app = express();
 app.use("/*", cors());
 app.use(bodyParser.urlencoded({ extended: false }));
-
+let count = 0;
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -83,6 +83,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
 });
 
 app.post("/status-callback", async (req, res) => {
+  count++;
   const messageStatus = req.body.MessageStatus;
   const userPhoneNumber = req.body.To;
   const messageSid = req.body.MessageSid;
@@ -114,7 +115,7 @@ app.post("/status-callback", async (req, res) => {
     try {
       await client.messages.create({
         contentSid: contentSid,
-        contentVariables: JSON.stringify({ 1: "John" }), // Adjust the variables as needed
+        contentVariables: JSON.stringify({ 1: `${count}-${statusMessage}` }), // Adjust the variables as needed
         from: twilioPhoneNumber,
         messagingServiceSid: msgServiceId,
         to: userPhoneNumber,
