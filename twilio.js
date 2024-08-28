@@ -11,20 +11,14 @@ require("dotenv").config();
 const app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
-// app.use(
-//   session({
-//     secret: process.env.SESSION_KEY,
-//     resave: false,
-//     saveUninitialized: true,
-//     cookie: { secure: true },
-//   })
-// );
+
 let count = 0;
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 const msgServiceId = process.env.MESSAGE_SERVICE_ID;
 const contentSid = process.env.Content_template_SID;
+const url = process.env.URL;
 const client = require("twilio")(accountSid, authToken);
 const mySet = new Set();
 
@@ -34,14 +28,12 @@ app.post("/whatsapp-webhook", async (req, res) => {
   const numMedia = req.body.NumMedia;
   let responseMessage = `From: ${fromNumber}\nYou said: ${incomingMessage}`;
   const sessionId = fromNumber; // You could use message SID or phone number as the key
-  // req.session[sessionId] = false;
+
   if (
     numMedia > 0 ||
     (incomingMessage && incomingMessage.includes("special text"))
   ) {
     mySet.add(sessionId);
-    // req.session[sessionId] = true;
-    // console.log(`Session Data: ${JSON.stringify(req.session[sessionId])}`);
     responseMessage += "\nYou sent the following media:";
 
     for (let i = 0; i < numMedia; i++) {
@@ -105,11 +97,8 @@ app.post("/status-callback", async (req, res) => {
   const userPhoneNumber = req.body.To;
   const messageSid = req.body.MessageSid;
   const sessionId = userPhoneNumber;
-  // const sessionData = req.session[sessionId];
   let statusMessage = "";
-  // if (messageStatus === "delivered") {
-  //   console.log(`count: ${count}=>  ${messageStatus} and ${sessionData}`);
-  // }
+
   switch (messageStatus) {
     case "queued":
       statusMessage = "Your message is queued and will be sent shortly.";
@@ -155,6 +144,18 @@ app.post("/status-callback", async (req, res) => {
   // res.sendStatus(messageStatus === "delivered" ? 200 : 400);
 });
 
+app.get("/", (req, res) => {
+  console.log("server logged");
+  res.status(200).send("Done");
+});
+function pingServer(time) {
+  time = time * 60 * 1000;
+  setInterval(async () => {
+    const response = await axios.get(url);
+  }, time);
+}
+// This will ping server in every 14 min
+pingServer(14);
 app.listen(3000, () => {
   console.log("Server is up and running on port 3000");
 });
