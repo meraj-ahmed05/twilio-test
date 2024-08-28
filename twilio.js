@@ -60,7 +60,6 @@ app.post("/whatsapp-webhook", async (req, res) => {
             0,
             100
           )}...`;
-          // req.body.metadata = "send-follow-up";
         } else if (mediaContentType.startsWith("image/")) {
           const image = sharp(mediaData);
           const imageMetadata = await image.metadata();
@@ -140,8 +139,6 @@ app.post("/status-callback", async (req, res) => {
     }
   }
   res.sendStatus(200);
-  // Send a single response
-  // res.sendStatus(messageStatus === "delivered" ? 200 : 400);
 });
 
 app.get("/", (req, res) => {
@@ -151,7 +148,11 @@ app.get("/", (req, res) => {
 function pingServer(time) {
   time = time * 60 * 1000;
   setInterval(async () => {
-    const response = await axios.get(url);
+    try {
+      const response = await axios.get(url);
+    } catch (err) {
+      console.log(`${err} occured while pinging server`);
+    }
   }, time);
 }
 // This will ping server in every 14 min
