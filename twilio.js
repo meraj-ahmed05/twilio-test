@@ -77,7 +77,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
   if (incomingMessage === "Save" && mySet.has(sessionId)) {
     console.log("entered follow up");
     const userResponse = req.body.Body;
-    let responseMessage = `You pressed: ${userResponse}`;
+    responseMessage = `You pressed: ${userResponse}`;
     saveMedia(myMap, sessionId)
       .then(() => {
         myMap.delete(sessionId);
