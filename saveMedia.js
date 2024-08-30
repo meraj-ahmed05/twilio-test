@@ -1,21 +1,25 @@
 const twilio = require("twilio");
 const axios = require("axios");
 require("dotenv").config();
+
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 const contentSid = process.env.Content_template_SID_TEXT;
+
 const client = twilio(accountSid, authToken);
 
-function saveMedia(myMap, sessionId) {
+async function saveMedia(myMap, sessionId) {
   console.log(`save media: ${sessionId}`);
   let mediaQ = myMap.get(sessionId);
   let n = mediaQ.length;
   let responseMessage = "\nDownloaded the following media:";
   let promises = [];
+
   for (let i = 0; i < n; i++) {
     const mediaUrl = mediaQ[i].mediaUrl;
     const mediaContentType = mediaQ[i].mediaContentType;
+
     promises.push(
       axios
         .get(mediaUrl, {
@@ -29,7 +33,7 @@ function saveMedia(myMap, sessionId) {
         .then((mediaResponse) => {
           console.log(`save media 232: ${sessionId}`);
           responseMessage += `\n${i}:${mediaContentType}`;
-          // const mediaData = mediaResponse.data;
+          // const mediaData = mediaResponse.data; //
         })
         .catch((error) => {
           responseMessage += ` Error while downloading mediaUrl: ${mediaContentType} `;
@@ -37,27 +41,28 @@ function saveMedia(myMap, sessionId) {
         })
     );
   }
-  Promise.all(promises)
-    .then(() => createMessage(responseMessage, sessionId))
-    .catch((error) =>
-      console.error(`Failed to send message: ${error.message}`)
-    );
+
+  try {
+    await Promise.all(promises);
+    await createMessage(responseMessage, sessionId);
+  } catch (error) {
+    console.error(`Failed during processing: ${error.message}`);
+  }
 }
 
-function createMessage(responseMessage, userPhoneNumber) {
+async function createMessage(responseMessage, userPhoneNumber) {
   console.log("create message logged ");
-  client.messages
-    .create({
+  try {
+    await client.messages.create({
       contentSid: contentSid,
       contentVariables: JSON.stringify({ 1: responseMessage }),
       from: twilioPhoneNumber,
       to: userPhoneNumber,
-    })
-    .then(() => {
-      console.log(`Message sent to ${userPhoneNumber}`);
-    })
-    .catch((error) => {
-      console.error(`Failed to send message: ${error.message}`);
     });
+    console.log(`Message sent to ${userPhoneNumber}`);
+  } catch (error) {
+    console.error(`Failed to send message: ${error.message}`);
+  }
 }
+
 module.exports = { saveMedia };
