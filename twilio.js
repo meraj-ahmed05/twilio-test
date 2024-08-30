@@ -49,29 +49,31 @@ app.post("/whatsapp-webhook", async (req, res) => {
       let mediaQ = [];
       mediaQ.push(mediaObj);
       myMap.set(sessionId, mediaQ);
-      try {
-        setTimeout(async () => {
-          const statusMessage =
-            "Your media file has been recieved,suggest next action: ";
-          await client.messages.create({
+      setTimeout(async () => {
+        const statusMessage = "Your media file has been recieved: ";
+        client.messages
+          .create({
             contentSid: contentSid,
             contentVariables: JSON.stringify({
               1: `${count}-${statusMessage}`,
-            }), // Adjust the variables as needed
+            }),
             from: twilioPhoneNumber,
             messagingServiceSid: msgServiceId,
             to: fromNumber,
             body: statusMessage,
             metadata: "follow-up",
+          })
+          .then(() => {
+            console.log("Follow-up message sent.");
+          })
+          .catch(() => {
+            responseMessage += `\nFailed to send Follow up message`;
           });
-          console.log("Follow-up message sent.");
-        }, 3000);
-      } catch (error) {
-        responseMessage += `\nFailed to send Follow up message`;
-      }
+      }, 3000);
     }
 
     if (req.body.metadata === "follow-up") {
+      console.log("entered follow up");
       const userResponse = req.body.Body;
       const responseMessage = `You pressed: ${userResponse}`;
       if (userResponse === "Save") {
