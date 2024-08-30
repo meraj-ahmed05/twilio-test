@@ -5,7 +5,7 @@ const pdfParse = require("pdf-parse");
 const sharp = require("sharp");
 const twilio = require("twilio");
 const cors = require("cors");
-// const session = require("express-session");
+const { saveMedia } = require("./saveMedia");
 require("dotenv").config();
 
 const app = express();
@@ -20,7 +20,7 @@ const msgServiceId = process.env.MESSAGE_SERVICE_ID;
 const contentSid = process.env.Content_template_SID;
 const url = process.env.URL;
 const client = require("twilio")(accountSid, authToken);
-const mySet = new Set();
+const myMap = new Map();
 
 app.post("/whatsapp-webhook", async (req, res) => {
   const incomingMessage = req.body.Body;
@@ -33,54 +33,60 @@ app.post("/whatsapp-webhook", async (req, res) => {
     numMedia > 0 ||
     (incomingMessage && incomingMessage.includes("special text"))
   ) {
-    mySet.add(sessionId);
-    responseMessage += "\nYou sent the following media:";
+    responseMessage = "\nYou sent the following media:";
+    const mediaUrl = req.body[`MediaUrl0`];
+    const mediaContentType = req.body[`MediaContentType0`];
+    responseMessage += `\n${mediaContentType}`;
+    const mediaObj = {
+      mediaUrl: mediaUrl,
+      mediaContentType: mediaContentType,
+    };
 
-    for (let i = 0; i < numMedia; i++) {
-      const mediaUrl = req.body[`MediaUrl${i}`];
-      const mediaContentType = req.body[`MediaContentType${i}`];
-
-      responseMessage += `\nMedia ${i + 1}: Type-> ${mediaContentType})`;
-
+    if (myMap.has(sessionId)) {
+      let mediaQ = myMap.get(sessionId);
+      mediaQ.push(mediaObj);
+    } else {
+      let mediaQ = [];
+      mediaQ.push(mediaObj);
+      myMap.set(sessionId, mediaQ);
       try {
-        const mediaResponse = await axios.get(mediaUrl, {
-          headers: {
-            Authorization: `Basic ${Buffer.from(
-              `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
-            ).toString("base64")}`,
-          },
-          responseType: "arraybuffer",
-        });
-
-        const mediaData = mediaResponse.data;
-
-        if (mediaContentType === "application/pdf") {
-          const pdfData = await pdfParse(mediaData);
-          responseMessage += `\nPDF Content: ${pdfData.text.substring(
-            0,
-            100
-          )}...`;
-        } else if (mediaContentType.startsWith("image/")) {
-          const image = sharp(mediaData);
-          const imageMetadata = await image.metadata();
-          responseMessage += `\nImage Dimensions: ${imageMetadata.width}x${imageMetadata.height}`;
-        }
+        setTimeout(async () => {
+          const statusMessage =
+            "Your media file has been recieved,suggest next action: ";
+          await client.messages.create({
+            contentSid: contentSid,
+            contentVariables: JSON.stringify({
+              1: `${count}-${statusMessage}`,
+            }), // Adjust the variables as needed
+            from: twilioPhoneNumber,
+            messagingServiceSid: msgServiceId,
+            to: fromNumber,
+            body: statusMessage,
+            metadata: "follow-up",
+          });
+          console.log("Follow-up message sent.");
+        }, 3000);
       } catch (error) {
-        responseMessage += `\nFailed to process the media`;
+        responseMessage += `\nFailed to send Follow up message`;
       }
     }
-  }
 
-  if (req.body.metadata === "follow-up") {
-    const userResponse = req.body.Body;
-    const responseMessage = `You pressed: ${userResponse}`;
-
-    const twiml = new twilio.twiml.MessagingResponse();
-    twiml.message(responseMessage);
-
-    res.writeHead(200, { "Content-Type": "text/xml" });
-    res.end(twiml.toString());
-    return;
+    if (req.body.metadata === "follow-up") {
+      const userResponse = req.body.Body;
+      const responseMessage = `You pressed: ${userResponse}`;
+      if (userResponse === "Save") {
+        saveMedia(myMap, sessionId)
+          .then(() => {
+            myMap.delete(sessionId);
+            responseMessage += "Data uploaded successfully";
+          })
+          .catch((error) => {
+            responseMessage = "Error occurred while uploading the files";
+          });
+      } else {
+        myMap.delete(sessionId);
+      }
+    }
   }
 
   const twiml = new twilio.twiml.MessagingResponse();
@@ -120,24 +126,24 @@ app.post("/status-callback", async (req, res) => {
       break;
   }
 
-  if (messageStatus === "delivered" && mySet.has(sessionId)) {
-    try {
-      await client.messages.create({
-        contentSid: contentSid,
-        contentVariables: JSON.stringify({ 1: `${count}-${statusMessage}` }), // Adjust the variables as needed
-        from: twilioPhoneNumber,
-        messagingServiceSid: msgServiceId,
-        to: userPhoneNumber,
-        body: statusMessage,
-        metadata: "follow-up",
-      });
-      mySet.delete(sessionId);
-      // delete req.session[sessionId];
-      console.log("Follow-up message sent.");
-    } catch (error) {
-      console.error("Failed to send follow-up message:", error.message);
-    }
-  }
+  // if (messageStatus === "delivered" && myMap.has(sessionId)) {
+  //   try {
+  //     await client.messages.create({
+  //       contentSid: contentSid,
+  //       contentVariables: JSON.stringify({ 1: `${count}-${statusMessage}` }), // Adjust the variables as needed
+  //       from: twilioPhoneNumber,
+  //       messagingServiceSid: msgServiceId,
+  //       to: userPhoneNumber,
+  //       body: statusMessage,
+  //       metadata: "follow-up",
+  //     });
+  //     myMap.delete(sessionId);
+
+  //     console.log("Follow-up message sent.");
+  //   } catch (error) {
+  //     console.error("Failed to send follow-up message:", error.message);
+  //   }
+  // }
   res.sendStatus(200);
 });
 
