@@ -21,6 +21,7 @@ const contentSid = process.env.Content_template_SID;
 const url = process.env.URL;
 const client = require("twilio")(accountSid, authToken);
 const myMap = new Map();
+const mySet = new Set();
 
 app.post("/whatsapp-webhook", async (req, res) => {
   const incomingMessage = req.body.Body;
@@ -49,7 +50,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
       let mediaQ = [];
       mediaQ.push(mediaObj);
       myMap.set(sessionId, mediaQ);
-      setTimeout(async () => {
+      setTimeout(() => {
         const statusMessage = "Your media file has been recieved: ";
         client.messages
           .create({
@@ -61,9 +62,9 @@ app.post("/whatsapp-webhook", async (req, res) => {
             messagingServiceSid: msgServiceId,
             to: fromNumber,
             body: statusMessage,
-            metadata: "follow-up",
           })
           .then(() => {
+            mySet.add(sessionId);
             console.log("Follow-up message sent.");
           })
           .catch(() => {
@@ -71,24 +72,27 @@ app.post("/whatsapp-webhook", async (req, res) => {
           });
       }, 3000);
     }
+  }
 
-    if (req.body.metadata === "follow-up") {
-      console.log("entered follow up");
-      const userResponse = req.body.Body;
-      const responseMessage = `You pressed: ${userResponse}`;
-      if (userResponse === "Save") {
-        saveMedia(myMap, sessionId)
-          .then(() => {
-            myMap.delete(sessionId);
-            responseMessage += "Data uploaded successfully";
-          })
-          .catch((error) => {
-            responseMessage = "Error occurred while uploading the files";
-          });
-      } else {
+  if (incomingMessage === "Save" && mySet.has(sessionId)) {
+    console.log("entered follow up");
+    const userResponse = req.body.Body;
+    const responseMessage = `You pressed: ${userResponse}`;
+    saveMedia(myMap, sessionId)
+      .then(() => {
         myMap.delete(sessionId);
-      }
-    }
+        mySet.delete(sessionId);
+        responseMessage += "Data uploaded successfully";
+      })
+      .catch((error) => {
+        responseMessage = "Error occurred while uploading the files";
+      });
+  } else if (
+    (incomingMessage === "Ignore" || incomingMessage === "List Folder") &&
+    mySet.has(sessionId)
+  ) {
+    myMap.delete(sessionId);
+    mySet.delete(sessionId);
   }
 
   const twiml = new twilio.twiml.MessagingResponse();
@@ -102,50 +106,18 @@ app.post("/status-callback", async (req, res) => {
   count++;
   const messageStatus = req.body.MessageStatus;
   const userPhoneNumber = req.body.To;
-  const messageSid = req.body.MessageSid;
   const sessionId = userPhoneNumber;
   let statusMessage = "";
+  // typesOfmessageStatus = ["queued", "sent", "delivered", "undelivered", "failed"];
 
-  switch (messageStatus) {
-    case "queued":
-      statusMessage = "Your message is queued and will be sent shortly.";
-      break;
-    case "sent":
-      statusMessage = "Your message has been sent.";
-      break;
-    case "delivered":
-      statusMessage = "Your message was delivered successfully!";
-      break;
-    case "undelivered":
-      statusMessage = "Your message could not be delivered. Please try again.";
-      break;
-    case "failed":
-      statusMessage =
-        "There was an error sending your message. Please contact support.";
-      break;
-    default:
-      statusMessage = `Message status: ${messageStatus}`;
-      break;
+  if (messageStatus === "failed" && myMap.has(sessionId)) {
+    myMap.delete(sessionId);
+    console.log(`${sessionId} has been deleted from map`);
   }
-
-  // if (messageStatus === "delivered" && myMap.has(sessionId)) {
-  //   try {
-  //     await client.messages.create({
-  //       contentSid: contentSid,
-  //       contentVariables: JSON.stringify({ 1: `${count}-${statusMessage}` }), // Adjust the variables as needed
-  //       from: twilioPhoneNumber,
-  //       messagingServiceSid: msgServiceId,
-  //       to: userPhoneNumber,
-  //       body: statusMessage,
-  //       metadata: "follow-up",
-  //     });
-  //     myMap.delete(sessionId);
-
-  //     console.log("Follow-up message sent.");
-  //   } catch (error) {
-  //     console.error("Failed to send follow-up message:", error.message);
-  //   }
-  // }
+  if (messageStatus === "failed" && mySet.has(sessionId)) {
+    mySet.delete(sessionId);
+    console.log(`${sessionId} has been deleted from set`);
+  }
   res.sendStatus(200);
 });
 
