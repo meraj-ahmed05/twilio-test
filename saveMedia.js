@@ -8,6 +8,7 @@ const contentSid = process.env.Content_template_SID_TEXT;
 const client = twilio(accountSid, authToken);
 
 function saveMedia(myMap, sessionId) {
+  console.log(`save media: ${sessionId}`);
   let mediaQ = myMap.get(sessionId);
   let n = mediaQ.length;
   let responseMessage = "\nDownloaded the following media:";
@@ -26,8 +27,9 @@ function saveMedia(myMap, sessionId) {
           responseType: "arraybuffer",
         })
         .then((mediaResponse) => {
+          console.log(`save media 232: ${sessionId}`);
           responseMessage += `\n${i}:${mediaContentType}`;
-          const mediaData = mediaResponse.data;
+          // const mediaData = mediaResponse.data;
         })
         .catch((error) => {
           responseMessage += ` Error while downloading mediaUrl: ${mediaContentType} `;
@@ -43,6 +45,7 @@ function saveMedia(myMap, sessionId) {
 }
 
 function createMessage(responseMessage, userPhoneNumber) {
+  console.log("create message logged ");
   client.messages
     .create({
       contentSid: contentSid,
@@ -51,7 +54,7 @@ function createMessage(responseMessage, userPhoneNumber) {
       to: userPhoneNumber,
     })
     .then(() => {
-      console.log(`Message sent to ${twilioPhoneNumber}`);
+      console.log(`Message sent to ${userPhoneNumber}`);
     })
     .catch((error) => {
       console.error(`Failed to send message: ${error.message}`);
