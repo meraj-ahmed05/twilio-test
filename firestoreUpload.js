@@ -10,7 +10,7 @@ require("dotenv").config();
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const storage = getStorage();
+const storage = getStorage(app);
 
 async function uploadMedia(file, contentType) {
   let pathFolder = contentType.split("/")[0];
@@ -20,9 +20,9 @@ async function uploadMedia(file, contentType) {
   };
 
   return new Promise(async (resolve, reject) => {
-    console.log(`pathfolder: ${storageRef}+${pathFolder}:`);
     const storageRef = ref(storage, pathFolder);
     const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+    console.log(`pathfolder: ${storageRef}+${pathFolder}:`);
 
     uploadTask.on(
       "state_changed",
