@@ -22,6 +22,8 @@ const url = process.env.URL;
 const client = require("twilio")(accountSid, authToken);
 const myMap = new Map();
 const mySet = new Set();
+const pingTime = 14;
+const buttonAction = 3000; //(3 sec)
 
 app.post("/whatsapp-webhook", async (req, res) => {
   const incomingMessage = req.body.Body;
@@ -70,7 +72,7 @@ app.post("/whatsapp-webhook", async (req, res) => {
           .catch(() => {
             responseMessage += `\nFailed to send Follow up message`;
           });
-      }, 3000);
+      }, buttonAction);
     }
   }
 
@@ -136,7 +138,7 @@ function pingServer(time) {
   }, time);
 }
 // This will ping server in every 14 min
-pingServer(14);
+pingServer(pingTime);
 app.listen(3000, () => {
   console.log("Server is up and running on port 3000");
 });
