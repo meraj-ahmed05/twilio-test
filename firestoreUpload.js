@@ -20,7 +20,8 @@ async function uploadMedia(file, contentType) {
   };
 
   return new Promise(async (resolve, reject) => {
-    const storageRef = ref(storage, pathFolder + id);
+    console.log(`pathfolder: ${storageRef}+${pathFolder}:`);
+    const storageRef = ref(storage, pathFolder);
     const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
     uploadTask.on(
