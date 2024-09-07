@@ -5,7 +5,7 @@ const {
   uploadBytesResumable,
   getDownloadURL,
 } = require("firebase/storage");
-const firebaseConfig = require("./config");
+const { firebaseConfig } = require("./config");
 require("dotenv").config();
 
 // Initialize Firebase
