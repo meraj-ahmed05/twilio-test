@@ -1,6 +1,6 @@
 const twilio = require("twilio");
 const axios = require("axios");
-const uploadMedia = require("./firestoreUpload");
+const { uploadMedia } = require("./firestoreUpload");
 
 require("dotenv").config();
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -21,7 +21,8 @@ async function saveMedia(myMap, sessionId) {
     const mediaContentType = mediaQ[i].mediaContentType;
 
     promises.push(
-      axios.get(mediaUrl, {
+      axios
+        .get(mediaUrl, {
           headers: {
             Authorization: `Basic ${Buffer.from(
               `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
@@ -35,7 +36,7 @@ async function saveMedia(myMap, sessionId) {
           responseMessage += `\n${i}:${mediaContentType}: ${downloadURL}`;
         })
         .catch((error) => {
-          responseMessage += ` Error while downloading mediaUrl: ${mediaContentType} `;
+          responseMessage = ` Error while downloading mediaUrl: ${mediaContentType} `;
           console.error(`Failed to download media: ${error.message}`);
         })
     );
